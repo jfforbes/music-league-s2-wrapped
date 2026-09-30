@@ -1,0 +1,610 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Music League Wrapped Season 2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Instrument+Sans:ital,wght@0,400;0,600;0,700;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* Layout: full-bleed portrait story cards, one per stat, swiped like a Wrapped recap.
+     Single committed visual world (neon-on-black + a 2006 MySpace interlude), so no theme flip. */
+  :root{
+    --lime:#c6ff2e; --mag:#ff2fb9; --cyan:#31e5ff; --ink:#07070a; --paper:#f7f7f2;
+    --msblue:#003399; --mshead:#6699cc;
+    --display:"Archivo Black","Arial Black","Helvetica Neue",Impact,sans-serif;
+    --body:"Instrument Sans","Helvetica Neue",Arial,sans-serif;
+    --util:"DM Mono","SF Mono",Consolas,monospace;
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    background:#07070a; color:var(--paper);
+    font-family:var(--body);
+    overflow:hidden; display:flex; align-items:center; justify-content:center;
+    transition:background .5s ease;
+  }
+  #stage{position:relative;width:100%;height:100%;max-width:560px;overflow:hidden;box-shadow:0 40px 120px rgba(0,0,0,.7)}
+  @media(min-width:600px){ body{padding:24px} #stage{height:min(96vh,940px);border-radius:26px} }
+
+  .card{
+    position:absolute;inset:0;padding:60px 30px 84px;
+    display:flex;flex-direction:column;overflow:hidden;
+    opacity:0;visibility:hidden;transition:opacity .42s ease;color:var(--paper);
+  }
+  .card.active{opacity:1;visibility:visible}
+  .card.onlight{color:#07070a}
+
+  .bg{position:absolute;inset:0;z-index:0}
+  .bg::after{content:"";position:absolute;inset:0;opacity:.11;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+  .content{position:relative;z-index:2;display:flex;flex-direction:column;height:100%;width:100%;justify-content:center}
+  .ghost{position:absolute;z-index:1;font-family:var(--display);text-transform:uppercase;
+    color:currentColor;opacity:.07;line-height:.78;white-space:nowrap;pointer-events:none;letter-spacing:-.03em}
+
+  .kicker{font-family:var(--util);font-size:12px;letter-spacing:.26em;text-transform:uppercase;opacity:.85}
+  h1{font-family:var(--display);text-transform:uppercase;line-height:.88;letter-spacing:-.028em;
+     font-weight:400;overflow-wrap:break-word;hyphens:none}
+  .display{font-size:clamp(48px,14vw,90px)}
+  .big{font-size:clamp(34px,10.2vw,60px)}
+  .med{font-size:clamp(26px,7.2vw,44px)}
+  .num{font-family:var(--display);font-variant-numeric:tabular-nums;line-height:.86}
+  .lead{font-size:17px;line-height:1.4;font-weight:600}
+  .small{font-size:13.5px;line-height:1.5;opacity:.9}
+  .mono{font-family:var(--util)}
+  .spacer{flex:1}
+  b{font-weight:700}
+
+  /* resting state is visible; the stagger animates in from hidden via `backwards` fill */
+  .card .reveal{opacity:1;transform:none}
+  .card.active .reveal{animation:rise .68s cubic-bezier(.2,.8,.2,1) backwards}
+  .card.active .reveal:nth-child(1){animation-delay:.04s}
+  .card.active .reveal:nth-child(2){animation-delay:.12s}
+  .card.active .reveal:nth-child(3){animation-delay:.2s}
+  .card.active .reveal:nth-child(4){animation-delay:.28s}
+  .card.active .reveal:nth-child(5){animation-delay:.36s}
+  .card.active .reveal:nth-child(6){animation-delay:.44s}
+  .card.active .reveal:nth-child(7){animation-delay:.52s}
+  .card.active .reveal:nth-child(8){animation-delay:.6s}
+  @keyframes rise{from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)}}
+  @media (prefers-reduced-motion:reduce){
+    .card.active .reveal{animation:none}
+    .card.active .confetti{animation:none;opacity:0}
+    .hint{animation:none;opacity:.7}
+    .card{transition:none}
+  }
+
+  .pill{display:inline-block;border:2px solid currentColor;border-radius:999px;padding:5px 13px;
+    font-family:var(--util);font-size:11.5px;letter-spacing:.12em;text-transform:uppercase}
+
+  .row{display:flex;align-items:baseline;gap:12px;padding:9px 0;border-bottom:2px solid currentColor}
+  .row .rank{font-family:var(--display);font-size:22px;width:28px;flex:none;opacity:.5}
+  .row .main{flex:1;min-width:0}
+  .row .t{font-weight:700;font-size:16px;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .row .s{font-size:11.5px;opacity:.78;font-family:var(--util)}
+  .row .pts{font-family:var(--display);font-size:26px;flex:none}
+
+  .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px 14px}
+  .stat-grid .num{font-size:clamp(36px,11vw,58px)}
+  .stat-grid .lbl{font-family:var(--util);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;opacity:.85;margin-top:1px}
+
+  .themes{display:grid;grid-template-columns:1fr;gap:5px;margin-top:8px}
+  .themes div{font-size:12.5px;line-height:1.28;display:flex;gap:8px;align-items:baseline}
+  .themes b{font-family:var(--util);font-weight:400;opacity:.55;flex:none;font-size:11px}
+  .themes span{font-weight:600}
+  .themes i{opacity:.72;font-style:normal;font-weight:400}
+
+  .quote{border-left:3px solid currentColor;padding:2px 0 2px 13px;margin:11px 0;font-size:14.5px;line-height:1.38;font-weight:600}
+  .quote em{display:block;font-style:normal;font-family:var(--util);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;opacity:.62;margin-top:5px;font-weight:400}
+
+  .banlist{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .banlist span{font-family:var(--util);font-size:11.5px;border:1.5px solid currentColor;border-radius:4px;
+    padding:4px 8px;opacity:.9;text-decoration:line-through;text-decoration-thickness:1.5px}
+
+  /* ============ MYSPACE TOP 8 ============ */
+  .ms{background:#fff;color:#000;font-family:Verdana,Tahoma,Geneva,sans-serif}
+  .ms .content{padding:0}
+  .msbar{background:var(--mshead);color:#fff;font-weight:700;font-size:13px;padding:6px 9px;
+    border:1px solid #33628f;letter-spacing:.02em;display:flex;justify-content:space-between;align-items:center}
+  .msbar small{font-weight:400;font-size:10.5px;opacity:.95}
+  .msbox{border:1px solid #9bb8d4;border-top:none;padding:10px 9px 12px;background:#fff}
+  .msgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px 7px}
+  .mscell{text-align:center;position:relative;display:flex;flex-direction:column}
+  .msimg{position:relative;width:100%;aspect-ratio:1;border:1px solid #b9b9b9;overflow:hidden;
+    display:flex;align-items:center;justify-content:center;font-family:var(--display);color:#fff;
+    font-size:min(6.2vw,26px);letter-spacing:-.02em;text-shadow:0 1px 4px rgba(0,0,0,.35)}
+  .msbadge{position:absolute;top:0;left:0;background:#ffcc00;color:#000;font-family:Verdana;font-weight:700;
+    font-size:10px;line-height:1;padding:2px 4px;border-right:1px solid #000;border-bottom:1px solid #000}
+  .mscell .nm{font-size:10.5px;color:var(--msblue);text-decoration:underline;margin-top:4px;line-height:1.2;
+    word-break:break-word;font-weight:700}
+  .mscell .mt{font-size:9.5px;color:#444;line-height:1.25;margin-top:2px}
+  .mscell .sc{font-size:10px;color:#c00;font-weight:700;margin-top:auto;padding-top:3px}
+  .mshdr{font-family:var(--display);text-transform:uppercase;font-size:clamp(26px,7.4vw,40px);
+    line-height:.9;letter-spacing:-.02em;color:#000;margin:0 0 3px}
+  .mssub{font-size:11px;color:#333;line-height:1.35;margin-bottom:9px}
+  .msnote{font-size:10px;color:#555;line-height:1.4;margin-top:10px;border-top:1px dotted #aaa;padding-top:8px}
+  .msglit{position:absolute;inset:0;z-index:0;opacity:.55;pointer-events:none;
+    background:
+      radial-gradient(circle at 12% 9%, #ff2fb9 0 1.6px, transparent 2.2px),
+      radial-gradient(circle at 78% 22%, #31e5ff 0 1.6px, transparent 2.2px),
+      radial-gradient(circle at 34% 68%, #ffcc00 0 1.6px, transparent 2.2px),
+      radial-gradient(circle at 62% 88%, #ff2fb9 0 1.3px, transparent 2px),
+      radial-gradient(circle at 92% 54%, #c6ff2e 0 1.3px, transparent 2px);
+    background-size:96px 96px}
+  .msshell{position:relative;z-index:2;height:100%;display:flex;flex-direction:column;
+    justify-content:center;padding:52px 16px 78px;overflow:hidden}
+  .mspair{font-size:10px;color:#000;line-height:1.3;margin-top:3px;font-weight:700}
+  .msarrow{color:#c00}
+
+  .bars{position:absolute;top:13px;left:13px;right:13px;z-index:30;display:flex;gap:4px}
+  .bars .seg{flex:1;height:3px;border-radius:3px;background:rgba(255,255,255,.3);overflow:hidden}
+  .bars .seg.onlightseg{background:rgba(0,0,0,.22)}
+  .bars .seg i{display:block;height:100%;width:0;background:#fff;border-radius:3px}
+  .bars .seg.onlightseg i{background:#000}
+  .bars .seg.done i,.bars .seg.cur i{width:100%}
+
+  .zone{position:absolute;top:0;bottom:0;z-index:20;cursor:pointer}
+  .zone.left{left:0;width:34%}.zone.right{right:0;width:66%}
+
+  .hint{position:absolute;bottom:24px;left:0;right:0;text-align:center;z-index:25;font-family:var(--util);
+    font-size:11px;letter-spacing:.18em;text-transform:uppercase;opacity:.7;animation:pulse 2s infinite;color:#fff}
+  @keyframes pulse{0%,100%{opacity:.35}50%{opacity:.9}}
+
+  .btn{display:inline-flex;align-items:center;gap:8px;cursor:pointer;border:2px solid currentColor;
+    background:transparent;color:inherit;font-family:var(--util);text-transform:uppercase;letter-spacing:.12em;
+    font-size:11.5px;padding:10px 17px;border-radius:999px;z-index:25;position:relative}
+  .btn:hover{background:currentColor}
+  .btn:hover span{color:#07070a;mix-blend-mode:screen}
+
+  .capbox{display:flex;gap:7px;margin-top:14px}
+  .cap{flex:1;text-align:center;border:2px solid currentColor;border-radius:9px;padding:11px 3px}
+  .cap .n{font-family:var(--display);font-size:27px;line-height:1}
+  .cap .l{font-family:var(--util);font-size:9px;letter-spacing:.1em;text-transform:uppercase;opacity:.8;margin-top:3px}
+  .cap.dead{opacity:.32;text-decoration:line-through}
+
+  /* short-screen safety: keep every card inside the viewport on small phones */
+  @media (max-height:740px){
+    .card{padding:50px 24px 68px}
+    .msshell{padding:46px 13px 64px}
+    .row{padding:7px 0}
+    .row .t{font-size:15px}
+    .row .pts{font-size:23px}
+    .quote{font-size:13px;margin:8px 0}
+    .themes div{font-size:11.5px}
+    .small{font-size:12.5px}
+    .msgrid{gap:7px 6px}
+    .mscell .nm{font-size:9.5px}
+    .mscell .mt,.mspair{font-size:9px}
+    .msnote{font-size:9px;margin-top:8px;padding-top:6px}
+    .stat-grid{gap:14px 12px}
+    .cap{padding:8px 3px}
+    .cap .n{font-size:23px}
+  }
+  @media (max-height:620px){
+    .card{padding:44px 20px 58px}
+    .msnote{display:none}
+    .banlist span{font-size:10px;padding:3px 6px}
+  }
+
+  #stage:focus-visible{outline:3px solid #fff;outline-offset:-3px}
+  .btn:focus-visible{outline:3px solid currentColor;outline-offset:3px}
+
+  .trophy{font-family:var(--display);font-size:clamp(66px,20vw,120px);line-height:.8}
+  .confetti{position:absolute;width:9px;height:13px;top:-20px;z-index:3;opacity:0}
+  .card.active .confetti{animation:fall linear forwards}
+  @keyframes fall{0%{opacity:1;transform:translateY(-20px) rotate(0)}100%{opacity:.9;transform:translateY(125vh) rotate(560deg)}}
+</style>
+
+<div id="stage" tabindex="0">
+  <div class="bars" id="bars"></div>
+
+  <!-- 1 COVER -->
+  <section class="card active" data-bgfill="#0d0a1f">
+    <div class="bg" style="background:radial-gradient(125% 95% at 78% 8%,#c6ff2e 0%,#31e5ff 34%,#ff2fb9 68%,#1a0630 100%)"></div>
+    <div class="ghost" style="font-size:190px;top:26%;left:-12%;transform:rotate(-7deg)">SEASON 2</div>
+    <div class="content onlight" style="justify-content:flex-end;color:#07070a">
+      <div class="reveal"><span class="pill">Season 2 · 16 Rounds · Jun–Sep 2026</span></div>
+      <div class="reveal" style="margin-top:16px"><div class="kicker">Music League</div></div>
+      <h1 class="display reveal" style="margin-top:2px">WRAPPED</h1>
+      <div class="reveal small" style="margin-top:14px;max-width:31ch;font-weight:600">
+        28 players. 362 songs. 3,341 votes. Actual judging criteria this time. A four-vote cap. And one runaway champion.
+      </div>
+      <div class="reveal" style="margin-top:22px"><span class="btn" data-next><span>Start the recap →</span></span></div>
+    </div>
+  </section>
+
+  <!-- 2 BY THE NUMBERS -->
+  <section class="card" data-bgfill="#04121f">
+    <div class="bg" style="background:radial-gradient(125% 100% at 18% 0%,#31e5ff 0%,#1763ff 52%,#05122c 100%)"></div>
+    <div class="ghost" style="font-size:270px;bottom:-7%;right:-14%;transform:rotate(7deg)">S2</div>
+    <div class="content">
+      <div class="reveal kicker">The season, by the numbers</div>
+      <div class="spacer"></div>
+      <div class="stat-grid">
+        <div class="reveal"><div class="num" data-count="16">0</div><div class="lbl">Rounds survived</div></div>
+        <div class="reveal"><div class="num" data-count="362">0</div><div class="lbl">Songs submitted</div></div>
+        <div class="reveal"><div class="num" data-count="28">0</div><div class="lbl">Players</div></div>
+        <div class="reveal"><div class="num" data-count="3341">0</div><div class="lbl">Votes cast</div></div>
+      </div>
+      <div class="spacer"></div>
+      <div class="reveal small">Plus <b>1,119</b> vote comments, <b>330</b> different artists, and <b>333</b> downvotes handed out with intent.</div>
+    </div>
+  </section>
+
+  <!-- 3 THE RULE CHANGE -->
+  <section class="card onlight" data-bgfill="#a6d600">
+    <div class="bg" style="background:linear-gradient(150deg,#e3ff5c 0%,#c6ff2e 48%,#67d900 100%)"></div>
+    <div class="ghost" style="font-size:250px;bottom:-8%;left:-10%;transform:rotate(-8deg)">MAX 4</div>
+    <div class="content">
+      <div class="reveal kicker">New this season</div>
+      <h1 class="med reveal" style="margin:6px 0 8px">The four-vote<br>ceiling</h1>
+      <div class="reveal small" style="font-weight:600">Still 10 points a round. But no more dumping all ten on one song — <b>4 was the hard cap</b>, so you had to spread the love.</div>
+      <div class="reveal capbox">
+        <div class="cap"><div class="n">1</div><div class="l">2,024 given</div></div>
+        <div class="cap"><div class="n">2</div><div class="l">421 given</div></div>
+        <div class="cap"><div class="n">3</div><div class="l">92 given</div></div>
+        <div class="cap"><div class="n">4</div><div class="l">47 given</div></div>
+      </div>
+      <div class="reveal capbox">
+        <div class="cap dead"><div class="n">10</div><div class="l">S1 move · dead</div></div>
+        <div class="cap"><div class="n">1</div><div class="l">downvote each</div></div>
+      </div>
+      <div class="reveal small" style="margin-top:14px">Only <b>47</b> songs all season were worth someone's absolute maximum. Handing out a 4 meant something.</div>
+    </div>
+  </section>
+
+  <!-- 4 THE 16 THEMES -->
+  <section class="card" data-bgfill="#160528">
+    <div class="bg" style="background:radial-gradient(125% 100% at 88% 96%,#ff2fb9 0%,#8a1bd1 48%,#1c0636 100%)"></div>
+    <div class="content">
+      <div class="reveal kicker">16 rounds, 16 rabbit holes</div>
+      <h1 class="med reveal" style="margin:5px 0 4px">The themes</h1>
+      <div class="reveal themes">
+        <div><b>01</b><span>Be The ✨KEY✨ Change</span> <i>· key changes</i></div>
+        <div><b>02</b><span>Counting is Hard</span> <i>· odd time signatures</i></div>
+        <div><b>03</b><span>Deep Cuts</span> <i>· know the artist, not the song</i></div>
+        <div><b>04</b><span>Theater kids, assemble!!</span> <i>· showtunes</i></div>
+        <div><b>05</b><span>I Wish I Could Quit You 💔</span> <i>· love it, hate the genre</i></div>
+        <div><b>06</b><span>Sentimental Show Stories</span> <i>· concert memories</i></div>
+        <div><b>07</b><span>Take Cover!!!!</span> <i>· covers only</i></div>
+        <div><b>08</b><span>Open Sesame!!!</span> <i>· album openers</i></div>
+        <div><b>09</b><span>🎶 Wordless Wonders 🎶</span> <i>· gibberish hooks</i></div>
+        <div><b>10</b><span>Serving C.U.N.T 💅</span> <i>· vocal performance</i></div>
+        <div><b>11</b><span>Bring me to life!!</span> <i>· coma-reversing bangers</i></div>
+        <div><b>12</b><span>Break up songs</span> <i>· story required</i></div>
+        <div><b>13</b><span>Lights Go Down</span> <i>· mood setters</i></div>
+        <div><b>14</b><span>Greatest Guitar Solo From Who?!</span> <i>· unknown artists</i></div>
+        <div><b>15</b><span>Chewsday Innit</span> <i>· British accents</i></div>
+        <div><b>16</b><span>Benching The Starter</span> <i>· non-guitar solos</i></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 THE CRITERIA ERA -->
+  <section class="card" data-bgfill="#07211a">
+    <div class="bg" style="background:radial-gradient(125% 100% at 12% 12%,#c6ff2e 0%,#12b583 46%,#052b22 100%)"></div>
+    <div class="ghost" style="font-size:280px;top:14%;right:-20%;transform:rotate(90deg)">RULES</div>
+    <div class="content">
+      <div class="reveal kicker">This season we added judging criteria</div>
+      <h1 class="med reveal" style="margin:5px 0 2px">And things got<br>specific</h1>
+      <div class="reveal quote">"A good key change causes an involuntary bodily response when it hits. Goosebumps. Stank face."<em>Round 1</em></div>
+      <div class="reveal quote">"You know the artist. You don't know the song. …You like the song."<em>Round 3</em></div>
+      <div class="reveal quote">"Would you love me if I was an earworm?"<em>Round 9</em></div>
+      <div class="reveal quote">"Charisma. Uniqueness. Nerve. Talent. All four required."<em>Round 10</em></div>
+      <div class="reveal quote">"Kazoo solo in a metal song? Now we're talking."<em>Round 16</em></div>
+    </div>
+  </section>
+
+  <!-- 6 THE BANNED LIST -->
+  <section class="card" data-bgfill="#1d0303">
+    <div class="bg" style="background:radial-gradient(125% 100% at 50% 0%,#ff4444 0%,#8a0808 52%,#140101 100%)"></div>
+    <div class="ghost" style="font-size:210px;top:6%;left:-8%;transform:rotate(-6deg)">BANNED</div>
+    <div class="content">
+      <div class="reveal kicker">Pre-emptively disqualified</div>
+      <h1 class="med reveal" style="margin:5px 0 6px">The banned<br>list</h1>
+      <div class="reveal small">Artists and songs the hosts ruled too obvious, too iconic, or too personally offensive to allow:</div>
+      <div class="reveal banlist">
+        <span>Whitney Houston</span><span>Celine Dion</span><span>Tool</span><span>Rush</span>
+        <span>Dream Theater</span><span>Taylor Swift</span><span>Kanye</span><span>Metallica</span>
+        <span>Daft Punk</span><span>Shania Twain</span><span>Prince</span><span>Van Halen</span>
+        <span>Hendrix</span><span>Led Zeppelin</span><span>Pink Floyd</span><span>GnR</span>
+        <span>Weird Al</span><span>Billy Joel</span><span>The Doors</span><span>Toto</span>
+        <span>Beethoven</span><span>Mozart</span><span>Bach</span><span>Jethro Tull</span>
+      </div>
+      <div class="reveal small" style="margin-top:12px">Also banned by name: <b>Love on Top</b>, <b>Livin' on a Prayer</b>, <b>Take Five</b>, <b>Hey Ya</b>, <b>MMMBop</b>, <b>Scatman</b>, and <b>Disturbed's "Sound of Silence"</b> — "because the autotune offends me."</div>
+    </div>
+  </section>
+
+  <!-- 7 TOP ARTISTS -->
+  <section class="card" data-bgfill="#0a0626">
+    <div class="bg" style="background:radial-gradient(125% 100% at 20% 88%,#6a5cff 0%,#3a1fd1 52%,#100836 100%)"></div>
+    <div class="ghost" style="font-size:230px;top:10%;right:-18%;transform:rotate(90deg)">ARTISTS</div>
+    <div class="content">
+      <div class="reveal kicker">Most points earned, all season</div>
+      <h1 class="med reveal" style="margin:5px 0 8px">Top artists</h1>
+      <div class="reveal row"><span class="rank">1</span><div class="main"><div class="t">blink-182</div><div class="s">tied for the crown</div></div><span class="pts">39</span></div>
+      <div class="reveal row"><span class="rank">1</span><div class="main"><div class="t">My Chemical Romance</div><div class="s">the scene never died</div></div><span class="pts">39</span></div>
+      <div class="reveal row"><span class="rank">3</span><div class="main"><div class="t">The Beatles</div></div><span class="pts">32</span></div>
+      <div class="reveal row"><span class="rank">4</span><div class="main"><div class="t">Sorority Noise · Yellowcard</div><div class="s">tied</div></div><span class="pts">27</span></div>
+      <div class="reveal row" style="border:none"><span class="rank">4</span><div class="main"><div class="t">Kero Kero Bonito</div></div><span class="pts">27</span></div>
+      <div class="reveal small" style="margin-top:12px">A season that banned Metallica and Zeppelin, then handed the trophy to <b>pop punk and emo</b>. Round 16 tried to ban those too. Too late.</div>
+    </div>
+  </section>
+
+  <!-- 8 #1 SONG -->
+  <section class="card" data-bgfill="#24050f">
+    <div class="bg" style="background:radial-gradient(125% 100% at 76% 92%,#ffd000 0%,#ff2fb9 44%,#9b0b52 74%,#28040f 100%)"></div>
+    <div class="ghost" style="font-size:210px;top:2%;left:-6%;transform:rotate(-6deg)">#1</div>
+    <div class="content">
+      <div class="reveal kicker">The most-loved song of the season</div>
+      <div class="spacer"></div>
+      <div class="reveal"><div class="num" style="font-size:clamp(74px,24vw,138px)">27</div><div class="kicker" style="margin-top:-4px">points · season high</div></div>
+      <h1 class="big reveal" style="margin-top:14px">Using</h1>
+      <div class="reveal lead" style="margin-top:8px">Sorority Noise</div>
+      <div class="reveal small" style="margin-top:7px">Submitted by <b>James</b> in <b>Round 1</b> — the key change round. Set the season high on day one and nothing beat it across the next fifteen rounds.</div>
+      <div class="spacer"></div>
+    </div>
+  </section>
+
+  <!-- 9 MYSPACE: TOP 8 SONGS -->
+  <section class="card ms" data-bgfill="#e8eef5" data-light>
+    <div class="bg" style="background:linear-gradient(180deg,#dce9f7 0%,#f2f6fb 40%,#fff 100%)"></div>
+    <div class="msglit"></div>
+    <div class="msshell">
+      <div class="reveal mshdr">Top 8 Songs</div>
+      <div class="reveal mssub">james's Top Friends &nbsp;·&nbsp; <span style="color:var(--msblue);text-decoration:underline">view all 362</span></div>
+      <div class="reveal msbar">Top 8 <small>sorted by points, obviously</small></div>
+      <div class="reveal msbox">
+        <div class="msgrid">
+          <div class="mscell"><div class="msimg" style="background:linear-gradient(135deg,#ff2fb9,#7a0b46)"><span class="msbadge">1</span>SN</div><div class="nm">Using</div><div class="mt">Sorority Noise</div><div class="sc">27 pts</div></div>
+          <div class="mscell"><div class="msimg" style="background:linear-gradient(135deg,#ffd000,#c47a00)"><span class="msbadge">2</span>SW</div><div class="nm">As</div><div class="mt">Stevie Wonder</div><div class="sc">22 pts</div></div>
+          <div class="mscell"><div class="msimg" style="background:linear-gradient(135deg,#31e5ff,#0b5e8a)"><span class="msbadge">3</span>CA</div><div class="nm">ドミノ・ライン</div><div class="mt">CASIOPEA</div><div class="sc">21 pts</div></div>
+          <div class="mscell"><div class="msimg" style="background:linear-gradient(135deg,#c6ff2e,#4f8a00)"><span class="msbadge">4</span>MM</div><div class="nm">Change</div><div class="mt">Monkey Majik</div><div class="sc">21 pts</div></div>
+          <div class="mscell"><div class="msimg" style="background:linear-gradient(135deg,#a05cff,#3d1080)"><span class="msbadge">5</span>RK</div><div class="nm">Girls Just Want to Have Fun</div><div class="mt">Relient K</div><div class="sc">20 pts</div></div>
+          <div class="mscell"><div class="msimg" style="background:linear-gradient(135deg,#ff7a2f,#8a2f00)"><span class="msbadge">6</span>SQ</div><div class="nm">Thong Song</div><div class="mt">Sisqo</div><div class="sc">20 pts</div></div>
+          <div class="mscell"><div class="msimg" style="background:linear-gradient(135deg,#2fffc3,#00806b)"><span class="msbadge">7</span>PL</div><div class="nm">Electric Sunrise</div><div class="mt">Plini</div><div class="sc">20 pts</div></div>
+          <div class="mscell"><div class="msimg" style="background:linear-gradient(135deg,#ff4d6d,#8a0020)"><span class="msbadge">8</span>SA</div><div class="nm">Seven Years</div><div class="mt">Saosin</div><div class="sc">19 pts</div></div>
+        </div>
+        <div class="msnote"><b>Round wins:</b> Sorority Noise took Round 1, CASIOPEA took the guitar solo round, Monkey Majik closed out the finale. Three of the top eight came from <b>James</b>.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 MYSPACE: TOP 8 PLAYERS -->
+  <section class="card ms" data-bgfill="#e8eef5" data-light>
+    <div class="bg" style="background:linear-gradient(180deg,#e7dcf7 0%,#f6f2fb 40%,#fff 100%)"></div>
+    <div class="msglit"></div>
+    <div class="msshell">
+      <div class="reveal mshdr">Top 8 Players</div>
+      <div class="reveal mssub">the leaderboard, but make it 2006 &nbsp;·&nbsp; <span style="color:var(--msblue);text-decoration:underline">28 in the league</span></div>
+      <div class="reveal msbar">Top 8 <small>total points, 16 rounds</small></div>
+      <div class="reveal msbox">
+        <div class="msgrid">
+          <div class="mscell"><div class="msimg" style="background:linear-gradient(135deg,#ffd000,#b36b00)"><span class="msbadge">1</span>J</div><div class="nm">James</div><div class="mt">6 round wins</div><div class="sc">214 pts</div></div>
+          <div class="mscell"><div class="msimg" style="background:linear-gradient(135deg,#ff2fb9,#8a0b5c)"><span class="msbadge">2</span>H</div><div class="nm">Harleigh</div><div class="mt">11.6 avg</div><div class="sc">186 pts</div></div>
+          <div class="mscell"><div class="msimg" style="background:linear-gradient(135deg,#31e5ff,#0b5e8a)"><span class="msbadge">3</span>DM</div><div class="nm">David Martin</div><div class="mt">10.2 avg</div><div class="sc">164 pts</div></div>
+          <div class="mscell"><div class="msimg" style="background:linear-gradient(135deg,#c6ff2e,#4f8a00)"><span class="msbadge">4</span>LS</div><div class="nm">Lacey S.</div><div class="mt">2 round wins</div><div class="sc">162 pts</div></div>
+          <div class="mscell"><div class="msimg" style="background:linear-gradient(135deg,#a05cff,#3d1080)"><span class="msbadge">5</span>M</div><div class="nm">Marlene</div><div class="mt">1 round win</div><div class="sc">160 pts</div></div>
+          <div class="mscell"><div class="msimg" style="background:linear-gradient(135deg,#ff7a2f,#8a2f00)"><span class="msbadge">6</span>JF</div><div class="nm">Joshua Fuller</div><div class="mt">179 comments</div><div class="sc">159 pts</div></div>
+          <div class="mscell"><div class="msimg" style="background:linear-gradient(135deg,#2fffc3,#00806b)"><span class="msbadge">7</span>MC</div><div class="nm">maci</div><div class="mt">Thong Song truther</div><div class="sc">149 pts</div></div>
+          <div class="mscell"><div class="msimg" style="background:linear-gradient(135deg,#ff4d6d,#8a0020)"><span class="msbadge">8</span>L</div><div class="nm">Lonnie</div><div class="mt">15 max votes given</div><div class="sc">140 pts</div></div>
+        </div>
+        <div class="msnote"><b>Nick B</b> and <b>AshleyJill</b> each won two rounds without cracking the top 8 — proof that peaking beats consistency for glory, not for standings.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 MYSPACE: TOP 8 LOVERS -->
+  <section class="card ms" data-bgfill="#f7e4ef" data-light>
+    <div class="bg" style="background:linear-gradient(180deg,#fbdcec 0%,#fdf0f6 42%,#fff 100%)"></div>
+    <div class="msglit"></div>
+    <div class="msshell">
+      <div class="reveal mshdr" style="color:#c2185b">Top 8 Lovers</div>
+      <div class="reveal mssub">secret (or not so secret) admirers &nbsp;·&nbsp; who kept voting for whom</div>
+      <div class="reveal msbar" style="background:#d81b7a;border-color:#8a0b4c">♥ Top 8 <small>points given, one player to another</small></div>
+      <div class="reveal msbox">
+        <div class="msgrid">
+          <div class="mscell"><div class="msimg" style="background:linear-gradient(135deg,#ff6fa5,#b3004c)"><span class="msbadge">1</span>♥</div><div class="mspair">AshleyJill <span class="msarrow">→</span> David Martin</div><div class="mt">13 songs</div><div class="sc">25 pts</div></div>
+          <div class="mscell"><div class="msimg" style="background:linear-gradient(135deg,#ff8fc0,#c2185b)"><span class="msbadge">2</span>♥</div><div class="mspair">James <span class="msarrow">→</span> Harleigh</div><div class="mt">13 songs</div><div class="sc">22 pts</div></div>
+          <div class="mscell"><div class="msimg" style="background:linear-gradient(135deg,#ff6fa5,#9c0042)"><span class="msbadge">3</span>♥</div><div class="mspair">Harleigh <span class="msarrow">→</span> Lacey S.</div><div class="mt">13 songs</div><div class="sc">21 pts</div></div>
+          <div class="mscell"><div class="msimg" style="background:linear-gradient(135deg,#ff9ec9,#b3005c)"><span class="msbadge">4</span>♥</div><div class="mspair">Timothy <span class="msarrow">→</span> James</div><div class="mt">13 songs</div><div class="sc">21 pts</div></div>
+          <div class="mscell"><div class="msimg" style="background:linear-gradient(135deg,#ff7ab0,#a8004e)"><span class="msbadge">5</span>♥</div><div class="mspair">AshleyJill <span class="msarrow">→</span> Lonnie</div><div class="mt">12 songs</div><div class="sc">18 pts</div></div>
+          <div class="mscell"><div class="msimg" style="background:linear-gradient(135deg,#ff8fc0,#c2185b)"><span class="msbadge">6</span>♥</div><div class="mspair">Harleigh <span class="msarrow">→</span> maci</div><div class="mt">12 songs</div><div class="sc">18 pts</div></div>
+          <div class="mscell"><div class="msimg" style="background:linear-gradient(135deg,#ff6fa5,#9c0042)"><span class="msbadge">7</span>♥</div><div class="mspair">Lonnie <span class="msarrow">→</span> James</div><div class="mt">only 8 songs</div><div class="sc">17 pts</div></div>
+          <div class="mscell"><div class="msimg" style="background:linear-gradient(135deg,#ff9ec9,#b3005c)"><span class="msbadge">8</span>♥</div><div class="mspair">David Martin <span class="msarrow">→</span> AshleyJill</div><div class="mt">11 songs</div><div class="sc">16 pts</div></div>
+        </div>
+        <div class="msnote"><b>It's mutual:</b> AshleyJill ♥ David Martin traded <b>41 points</b> both ways — the league's most requited romance. Harleigh ♥ Lacey S. managed 36. Meanwhile <b>Lonnie</b> gave James 17 points across just 8 songs: fewer picks, bigger swings.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 MYSPACE: BIGGEST HATERS -->
+  <section class="card ms" data-bgfill="#1a1a1a" data-light>
+    <div class="bg" style="background:linear-gradient(180deg,#d8d8d8 0%,#efefef 42%,#fff 100%)"></div>
+    <div class="msglit"></div>
+    <div class="msshell">
+      <div class="reveal mshdr">Top 8 Haters</div>
+      <div class="reveal mssub">the grudges, ranked &nbsp;·&nbsp; 333 downvotes across 229 different pairings</div>
+      <div class="reveal msbar" style="background:#333;border-color:#000">✖ Top 8 <small>downvotes, one player to another</small></div>
+      <div class="reveal msbox">
+        <div class="msgrid">
+          <div class="mscell"><div class="msimg" style="background:linear-gradient(135deg,#555,#000)"><span class="msbadge">1</span>✖</div><div class="mspair">Garrett Hagen <span class="msarrow">→</span> Kirby</div><div class="mt">4 rounds running</div><div class="sc">4 dv</div></div>
+          <div class="mscell"><div class="msimg" style="background:linear-gradient(135deg,#666,#111)"><span class="msbadge">2</span>✖</div><div class="mspair">Joshua Fuller <span class="msarrow">→</span> Vincent Hamey</div><div class="mt">a pattern</div><div class="sc">4 dv</div></div>
+          <div class="mscell"><div class="msimg" style="background:linear-gradient(135deg,#555,#000)"><span class="msbadge">3</span>✖</div><div class="mspair">Lacey S. <span class="msarrow">→</span> David Martin</div><div class="mt">he hit back 3×</div><div class="sc">4 dv</div></div>
+          <div class="mscell"><div class="msimg" style="background:linear-gradient(135deg,#666,#111)"><span class="msbadge">4</span>✖</div><div class="mspair">Marlene <span class="msarrow">→</span> Kris</div><div class="mt">consistent</div><div class="sc">4 dv</div></div>
+          <div class="mscell"><div class="msimg" style="background:linear-gradient(135deg,#555,#000)"><span class="msbadge">5</span>✖</div><div class="mspair">maci <span class="msarrow">→</span> Vincent Hamey</div><div class="mt">no notes</div><div class="sc">4 dv</div></div>
+          <div class="mscell"><div class="msimg" style="background:linear-gradient(135deg,#666,#111)"><span class="msbadge">6</span>✖</div><div class="mspair">nwmgothard <span class="msarrow">→</span> Vincent Hamey</div><div class="mt">third one</div><div class="sc">4 dv</div></div>
+          <div class="mscell"><div class="msimg" style="background:linear-gradient(135deg,#555,#000)"><span class="msbadge">7</span>✖</div><div class="mspair">AshleyJill <span class="msarrow">→</span> Kirby</div><div class="mt">joined the pile</div><div class="sc">3 dv</div></div>
+          <div class="mscell"><div class="msimg" style="background:linear-gradient(135deg,#666,#111)"><span class="msbadge">8</span>✖</div><div class="mspair">David Martin <span class="msarrow">→</span> Lacey S.</div><div class="mt">the feud, returned</div><div class="sc">3 dv</div></div>
+        </div>
+        <div class="msnote"><b>The real feud:</b> Lacey S. and David Martin downvoted each other <b>7 times combined</b> — while sitting 3rd and 4th on the leaderboard. <b>Kirby</b> (45 downvotes received) and <b>Vincent Hamey</b> (41) absorbed a quarter of the season's hate between them.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13 MOST DIVISIVE -->
+  <section class="card onlight" data-bgfill="#00bfa0">
+    <div class="bg" style="background:linear-gradient(135deg,#00e6c0 0%,#c6ff2e 100%)"></div>
+    <div class="ghost" style="font-size:200px;bottom:-2%;left:-6%;transform:rotate(-10deg)">±</div>
+    <div class="content">
+      <div class="reveal kicker">Love it or loathe it</div>
+      <h1 class="big reveal" style="margin:6px 0 3px">Most<br>divisive</h1>
+      <div class="reveal lead" style="margin-bottom:14px">Songs that split the room clean down the middle.</div>
+      <div class="reveal row" style="border-color:#07070a"><div class="main"><div class="t">The Office Theme</div><div class="s">Vincent Hamey · still finished net +6</div></div><span class="mono" style="font-weight:700">+14/−8</span></div>
+      <div class="reveal row" style="border-color:#07070a"><div class="main"><div class="t">The Slang Word P(*)ssy…</div><div class="s">André 3000 · Kris</div></div><span class="mono" style="font-weight:700">+5/−8</span></div>
+      <div class="reveal row" style="border-color:#07070a"><div class="main"><div class="t">Chocolate</div><div class="s">The 1975 · Kris</div></div><span class="mono" style="font-weight:700">+7/−5</span></div>
+      <div class="reveal row" style="border:none"><div class="main"><div class="t">Montana</div><div class="s">Frank Zappa · Elias VVitman</div></div><span class="mono" style="font-weight:700">+7/−5</span></div>
+      <div class="reveal small" style="margin-top:12px">Two rounds ended in a <b>dead tie</b> — Round 5 (James / Barkev, 17 each) and Round 11 (AshleyJill / Elias, 15 each).</div>
+    </div>
+  </section>
+
+  <!-- 14 MOST DOWNVOTED -->
+  <section class="card" data-bgfill="#160101">
+    <div class="bg" style="background:radial-gradient(125% 100% at 50% 4%,#ff3b3b 0%,#7a0606 52%,#0f0000 100%)"></div>
+    <div class="ghost" style="font-size:240px;top:16%;right:-16%;transform:rotate(8deg)">OOF</div>
+    <div class="content">
+      <div class="reveal kicker">Bravely submitted. Unanimously rejected.</div>
+      <div class="spacer"></div>
+      <div class="reveal"><div class="num" style="font-size:clamp(66px,21vw,124px)">−18</div><div class="kicker" style="margin-top:-2px">and not a single upvote</div></div>
+      <h1 class="big reveal" style="margin-top:12px">CALIFORNIA</h1>
+      <div class="reveal lead" style="margin-top:7px">Phantom Planet · submitted by Kirby</div>
+      <div class="reveal small" style="margin-top:7px">The OC theme went <b>0 for 18</b>. Eighteen people found it and downvoted it, and nobody defended it. The most decisive verdict of the entire season.</div>
+      <div class="reveal small" style="margin-top:9px">Runners-up: <b>21 Guns</b> (−11), <b>1234</b> by Feist (−10), <b>Stick Season</b> (−8).</div>
+      <div class="spacer"></div>
+    </div>
+  </section>
+
+  <!-- 15 SUPERLATIVES -->
+  <section class="card" data-bgfill="#051a2e">
+    <div class="bg" style="background:radial-gradient(125% 100% at 84% 16%,#31e5ff 0%,#1763ff 50%,#06142e 100%)"></div>
+    <div class="ghost" style="font-size:230px;bottom:-8%;left:-12%;transform:rotate(-6deg)">MAX</div>
+    <div class="content">
+      <div class="reveal kicker">Season superlatives</div>
+      <h1 class="med reveal" style="margin:5px 0 12px">Certified<br>behavior</h1>
+      <div class="reveal row"><div class="main"><div class="t">Lonnie</div><div class="s">gave the maximum 4 votes · 15 times</div></div><span class="pts">15</span></div>
+      <div class="reveal row"><div class="main"><div class="t">James</div><div class="s">vote comments left · yappiest voter</div></div><span class="pts">217</span></div>
+      <div class="reveal row"><div class="main"><div class="t">Joshua Fuller</div><div class="s">vote comments · runner-up yapper</div></div><span class="pts">179</span></div>
+      <div class="reveal row"><div class="main"><div class="t">Barkev &amp; derek</div><div class="s">most 4-point max votes received</div></div><span class="pts">6</span></div>
+      <div class="reveal row" style="border:none"><div class="main"><div class="t">Kirby</div><div class="s">downvotes absorbed · league record</div></div><span class="pts">45</span></div>
+      <div class="reveal small" style="margin-top:12px">Of 47 maximum votes handed out all season, <b>Lonnie alone gave 15</b> — nearly a third. Everyone else was rationing.</div>
+    </div>
+  </section>
+
+  <!-- 16 LEADERBOARD -->
+  <section class="card" data-bgfill="#05122a">
+    <div class="bg" style="background:radial-gradient(125% 100% at 82% 98%,#4aa8ff 0%,#1f4fd1 52%,#07153a 100%)"></div>
+    <div class="content">
+      <div class="reveal kicker">Final standings · the chasing pack</div>
+      <h1 class="med reveal" style="margin:5px 0 10px">The podium<br>hunt</h1>
+      <div class="reveal row"><span class="rank">2</span><div class="main"><div class="t">Harleigh</div></div><span class="pts">186</span></div>
+      <div class="reveal row"><span class="rank">3</span><div class="main"><div class="t">David Martin</div></div><span class="pts">164</span></div>
+      <div class="reveal row"><span class="rank">4</span><div class="main"><div class="t">Lacey S.</div></div><span class="pts">162</span></div>
+      <div class="reveal row"><span class="rank">5</span><div class="main"><div class="t">Marlene</div></div><span class="pts">160</span></div>
+      <div class="reveal row"><span class="rank">6</span><div class="main"><div class="t">Joshua Fuller</div></div><span class="pts">159</span></div>
+      <div class="reveal row" style="border:none"><span class="rank">7</span><div class="main"><div class="t">maci</div></div><span class="pts">149</span></div>
+      <div class="reveal small" style="margin-top:12px">Places 3 through 6 finished within <b>five points</b> of each other. And then there was first place, <b>28 points clear</b>.</div>
+    </div>
+  </section>
+
+  <!-- 17 CHAMPION -->
+  <section class="card" data-bgfill="#2b1a00">
+    <div class="bg" style="background:radial-gradient(125% 100% at 50% 0%,#ffe14a 0%,#ffb020 40%,#ff2fb9 72%,#2b0a1a 100%)"></div>
+    <div class="ghost" style="font-size:250px;bottom:-10%;right:-16%;transform:rotate(8deg)">CHAMP</div>
+    <div class="content onlight" style="align-items:center;text-align:center;color:#07070a">
+      <div class="reveal kicker" style="margin-top:6px">Season 2 Champion</div>
+      <div class="reveal trophy" style="margin:2px 0">★</div>
+      <h1 class="display reveal">James</h1>
+      <div class="reveal"><div class="num" data-count="214" style="font-size:clamp(42px,13vw,74px);margin-top:6px">0</div><div class="kicker">total points</div></div>
+      <div class="reveal small" style="margin-top:12px;max-width:31ch;font-weight:600">
+        <b>6 of 16 round wins.</b> Best average in the league at 13.4 a song. Took the season high in Round 1 with <i>Using</i> and never gave the lead back. Won by 28.
+      </div>
+    </div>
+  </section>
+
+  <!-- 18 OUTRO -->
+  <section class="card" data-bgfill="#140626">
+    <div class="bg" style="background:radial-gradient(125% 100% at 28% 18%,#ff2fb9 0%,#7a1bd1 52%,#100726 100%)"></div>
+    <div class="ghost" style="font-size:210px;top:22%;left:-10%;transform:rotate(-8deg)">GG</div>
+    <div class="content" style="justify-content:flex-end">
+      <div class="reveal kicker">"The best season of music league yet"</div>
+      <h1 class="big reveal" style="margin:7px 0">See you<br>in season 3.</h1>
+      <div class="reveal small" style="max-width:33ch">16 rounds · 362 songs · 3,341 votes · 1,119 comments · 24 banned artists · 1 four-vote ceiling · and one very decisive opinion about the OC theme.</div>
+      <div class="reveal" style="margin-top:20px;display:flex;gap:9px">
+        <span class="btn" data-restart><span>↺ Replay</span></span>
+      </div>
+    </div>
+  </section>
+
+  <div class="zone left" data-prev></div>
+  <div class="zone right" data-next></div>
+  <div class="hint" id="hint">Tap right → · or use arrow keys</div>
+</div>
+
+<script>
+(function(){
+  var cards=[].slice.call(document.querySelectorAll('.card'));
+  var stage=document.getElementById('stage'), barsWrap=document.getElementById('bars'), hint=document.getElementById('hint');
+  var i=0;
+  cards.forEach(function(){var s=document.createElement('div');s.className='seg';s.innerHTML='<i></i>';barsWrap.appendChild(s);});
+  var segs=[].slice.call(barsWrap.children);
+
+  function counts(card){
+    card.querySelectorAll('[data-count]').forEach(function(el){
+      var target=+el.dataset.count, dur=1100, t0=performance.now();
+      function step(now){
+        var p=Math.min(1,(now-t0)/dur), e=1-Math.pow(1-p,3);
+        el.textContent=Math.round(target*e).toLocaleString();
+        if(p<1)requestAnimationFrame(step);
+      }
+      el.textContent='0'; requestAnimationFrame(step);
+    });
+  }
+  function confetti(card){
+    if(card.querySelector('.confetti'))return;
+    var cols=['#ffe14a','#ff2fb9','#31e5ff','#c6ff2e','#fff'];
+    for(var k=0;k<38;k++){
+      var c=document.createElement('span'); c.className='confetti';
+      c.style.left=(Math.random()*100)+'%';
+      c.style.background=cols[k%cols.length];
+      c.style.animationDuration=(2.4+Math.random()*1.9)+'s';
+      c.style.animationDelay=(Math.random()*.6)+'s';
+      card.appendChild(c);
+    }
+  }
+  function show(n){
+    n=Math.max(0,Math.min(cards.length-1,n));
+    cards[i].classList.remove('active');
+    i=n;
+    var card=cards[i];
+    card.classList.add('active');
+    document.body.style.background=card.dataset.bgfill||'#07070a';
+    var light=card.hasAttribute('data-light');
+    segs.forEach(function(s,idx){
+      s.classList.toggle('done',idx<i);
+      s.classList.toggle('cur',idx===i);
+      s.classList.toggle('onlightseg',light);
+    });
+    hint.style.color=light?'#333':'#fff';
+    counts(card);
+    if(card.querySelector('.trophy'))confetti(card);
+    hint.style.display=(i===0)?'block':'none';
+  }
+  function next(){ if(i<cards.length-1) show(i+1); }
+  function prev(){ if(i>0) show(i-1); }
+
+  document.querySelectorAll('[data-next]').forEach(function(e){e.addEventListener('click',function(ev){ev.stopPropagation();next();});});
+  document.querySelectorAll('[data-prev]').forEach(function(e){e.addEventListener('click',function(ev){ev.stopPropagation();prev();});});
+  document.querySelector('[data-restart]').addEventListener('click',function(ev){ev.stopPropagation();show(0);});
+  window.addEventListener('keydown',function(e){
+    if(e.key==='ArrowRight'||e.key===' '||e.key==='Enter'){e.preventDefault();next();}
+    if(e.key==='ArrowLeft'){e.preventDefault();prev();}
+  });
+  var sx=0,sy=0;
+  stage.addEventListener('touchstart',function(e){sx=e.touches[0].clientX;sy=e.touches[0].clientY;},{passive:true});
+  stage.addEventListener('touchend',function(e){
+    var dx=e.changedTouches[0].clientX-sx, dy=e.changedTouches[0].clientY-sy;
+    if(Math.abs(dx)>40&&Math.abs(dx)>Math.abs(dy)){ dx<0?next():prev(); }
+  },{passive:true});
+  stage.focus(); show(0);
+})();
+</script>
